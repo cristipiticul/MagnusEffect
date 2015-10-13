@@ -1,13 +1,54 @@
 package ro.licj.magnus;
 
+import org.newdawn.slick.*;
 import ro.licj.magnus.util.Point;
 import ro.licj.magnus.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Game {
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+public class Game extends BasicGame {
+
+  private Image img;
+  public Game(String gamename)
+  {
+    super(gamename);
+  }
+
+  @Override
+  public void init(GameContainer gc) throws SlickException {
+    img = new Image("res/football.png").getScaledCopy(0.5f);
+  }
+
+  @Override
+  public void update(GameContainer gc, int i) throws SlickException {}
+
+  @Override
+  public void render(GameContainer gc, Graphics g) throws SlickException
+  {
+    g.drawString("Howdy!", 10, 10);
+    img.draw(20, 20);
+    img.rotate(0.5f);
+  }
+
+  public static void main(String[] args)
+  {
+    try
+    {
+      AppGameContainer appgc;
+      appgc = new AppGameContainer(new Game("Gameee"));
+      appgc.setDisplayMode(640, 480, false);
+      appgc.start();
+    }
+    catch (SlickException ex)
+    {
+      Logger.getLogger(Game.class.getName()).log(Level.SEVERE, null, ex);
+    }
+  }
+/*
   private static Game instance = new Game();
 
   private Game() {
@@ -82,5 +123,5 @@ public class Game {
 
   public static void main(String[] args) {
     Game.getInstance().run();
-  }
+  }*/
 }

@@ -1,6 +1,6 @@
 package ro.licj.magnus;
 
-import org.lwjgl.BufferUtils;
+/*import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWvidmode;
@@ -19,33 +19,35 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.system.MemoryUtil.NULL;
+import static org.lwjgl.system.MemoryUtil.NULL;*/
 
 /**
  * For user interface.
  */
 public class Renderer {
+
+    private static final int WINDOW_WIDTH = 1024;
+    private static final int WINDOW_HEIGHT = 720;
+    private static int PIXELS_PER_METER = 100;
+
+    public static int getWindowWidth() {
+        return WINDOW_WIDTH;
+    }
+
+    public static int getWindowHeight() {
+        return WINDOW_HEIGHT;
+    }
+
+    public static int getPixelsPerMeter() {
+        return PIXELS_PER_METER;
+    }
+    /*
   // We need to strongly reference callback instances.
   private GLFWErrorCallback errorCallback;
   private GLFWKeyCallback keyCallback;
 
-  private static final int WINDOW_WIDTH = 1024;
-  private static final int WINDOW_HEIGHT = 720;
-  private static int PIXELS_PER_METER = 100;
   private List<Point> trajectory;
   private boolean started = false;
-
-  public static int getWindowWidth() {
-    return WINDOW_WIDTH;
-  }
-
-  public static int getWindowHeight() {
-    return WINDOW_HEIGHT;
-  }
-
-  public static int getPixelsPerMeter() {
-    return PIXELS_PER_METER;
-  }
 
   // The window handle
   private long window;
@@ -273,24 +275,7 @@ public class Renderer {
     matrixBuffer.put(modelViewProjection);
     matrixBuffer.flip();
     glUniformMatrix3fv(matrixUniformLocation, true, matrixBuffer);
-/*
-    float[] colors = new float[]
-        {
-            1, 0, 0, 1,  // Red color, for the first vertex
-            0, 1, 0, 1,  // Green color, for the second vertex
-            0, 0, 1, 0   // Blue color, for the third vertex
-        };
 
-    FloatBuffer colorsBuffer = BufferUtils.createFloatBuffer(colors.length);
-    colorsBuffer.put(colors).flip();
-
-    int vboColID = glGenBuffers();
-    glBindBuffer(GL_ARRAY_BUFFER, vboColID);
-    glBufferData(GL_ARRAY_BUFFER, colorsBuffer, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(1, 4, GL_FLOAT, false, 0, 0);
-    glEnableVertexAttribArray(1);
-*/
     float[] UVCoordinates = new float[]
         {
             1.0f, 1.0f,
@@ -366,4 +351,5 @@ public class Renderer {
   public boolean hasStarted() {
     return started;
   }
+  */
 }

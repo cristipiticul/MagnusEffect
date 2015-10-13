@@ -1,6 +1,6 @@
 package ro.licj.magnus;
 
-import static org.lwjgl.glfw.GLFW.*;
+//import static org.lwjgl.glfw.GLFW.*;
 
 public class Timer {
   private double lastGameUpdateTime;
@@ -11,7 +11,8 @@ public class Timer {
   }
 
   public final double getTime() {
-    return glfwGetTime();
+    return 0.0;
+    //return glfwGetTime();
   }
 
   public boolean shouldUpdateGame() {
