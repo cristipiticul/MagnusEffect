@@ -1,5 +1,6 @@
 package ro.licj.magnus.util;
 
+/*
 import org.lwjgl.BufferUtils;
 
 import javax.imageio.ImageIO;
@@ -70,3 +71,4 @@ public enum PNGTexture {
 
   }
 }
+*/
