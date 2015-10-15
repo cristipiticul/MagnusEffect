@@ -56,12 +56,13 @@ public class Game {
     GLProfile glprofile = GLProfile.getDefault();
     GLCapabilities glcapabilities = new GLCapabilities( glprofile );
     GLJPanel gljpanel = new GLJPanel( glcapabilities );
+    System.out.println(glprofile.getImplName());
 
     gljpanel.addGLEventListener( new GLEventListener() {
 
       @Override
       public void reshape( GLAutoDrawable glautodrawable, int x, int y, int width, int height ) {
-        OneTriangle.setup( glautodrawable.getGL().getGL2(), width, height );
+        OneTriangle.setup(glautodrawable.getGL().getGL2(), width, height);
       }
 
       @Override
