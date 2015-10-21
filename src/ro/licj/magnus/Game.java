@@ -11,10 +11,10 @@ public class Game {
     private static final double AIR_DENSITY = 1.2;
     private static final double DRAG_COEFFICIENT = 0.47;
     private static final double BALL_CROSS_SURFACE = 0.0336;
-    private static final double groundY = 1.0;
+    private static final double GROUND_Y = 1.0;
     private static Game instance = new Game();
     private Renderer renderer = Renderer.getInstance();
-    private Mobile ball = new Mobile(new Point(1.0, 1.15), 0.42, new Vector(0.23, 0.23));
+    private Mobile ball = new Mobile(new Point(1.0, GROUND_Y + 0.12), 0.42, new Vector(0.23, 0.23));
     private boolean gameOver = false;
     private List<Point> trajectory = new ArrayList<Point>();
 
@@ -30,7 +30,7 @@ public class Game {
     }
 
     public void run() {
-        ball.setSpeed(new Vector(3.0, 10.0));
+        ball.setSpeed(new Vector(1.0, 10.0));
         trajectory.add(new Point(ball.getPosition().x, ball.getPosition().y));
         try {
             renderer.init(ball, trajectory);
@@ -46,8 +46,6 @@ public class Game {
     private void loop() {
         Timer timer = new Timer();
 
-        renderer.prepareForDrawing();
-
         while (!renderer.shouldClose()) {
             while (timer.shouldUpdateGame()) {
                 timer.update();
@@ -59,13 +57,14 @@ public class Game {
     }
 
     private void update() {
-        if (!gameOver) {
-            if (ball.getPosition().y - ball.getSize().y / 2 <= groundY) {
+        if (!gameOver && renderer.hasStarted()) {
+            if (ball.getPosition().y - ball.getSize().y / 2 <= GROUND_Y) {
                 Vector newSpeed = ball.getSpeed();
                 newSpeed.y = -newSpeed.y;
                 ball.setSpeed(newSpeed);
-                //gameOver = true;
-                //return;
+                ball.setPosition(new Point(ball.getPosition().x, GROUND_Y + ball.getSize().y / 2));
+//                gameOver = true;
+//                return;
             }
             Vector gravitationalForce = new Vector(0.0, -9.81 * ball.getMass());
             double coeff = -AIR_DENSITY * DRAG_COEFFICIENT * BALL_CROSS_SURFACE / 2;
@@ -73,8 +72,12 @@ public class Game {
 
             ball.applyForce(Vector.sum(gravitationalForce, frictionForce));
             ball.updatePosition();
-            ball.setAngle(ball.getAngle() + 5.0);
+//            ball.setAngle(ball.getAngle() + 5.0);
             trajectory.add(new Point(ball.getPosition().x, ball.getPosition().y));
         }
+    }
+
+    public static double getGroundY() {
+        return GROUND_Y;
     }
 }

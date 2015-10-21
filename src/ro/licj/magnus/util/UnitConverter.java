@@ -4,11 +4,11 @@ import ro.licj.magnus.Renderer;
 
 public class UnitConverter {
     public static float metersToUniformCoordinatesX(float metersX) {
-        return metersX * Renderer.getPixelsPerMeter() * 2.0f / Renderer.getWindowWidth();
+        return metersX * Renderer.getPixelsPerMeter() * 2.0f / Renderer.getDrawingPanelWidth();
     }
 
     public static float metersToUniformCoordinatesY(float metersY) {
-        return metersY * Renderer.getPixelsPerMeter() * 2.0f / Renderer.getWindowHeight();
+        return metersY * Renderer.getPixelsPerMeter() * 2.0f / Renderer.getDrawingPanelHeight();
     }
 
     public static float metersToUniformCoordinatesX(double metersX) {
