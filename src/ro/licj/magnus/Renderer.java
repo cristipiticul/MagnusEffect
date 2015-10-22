@@ -13,7 +13,10 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
@@ -32,14 +35,14 @@ public class Renderer {
 
   private static final int WINDOW_WIDTH = 1024;
   private static final int WINDOW_HEIGHT = 720;
-  private static final int PIXELS_PER_METER = 100;
+  private static final int PIXELS_PER_METER = 50;
   private static int DRAWING_PANEL_WIDTH;
   private static int DRAWING_PANEL_HEIGHT;
   private static Renderer instance = new Renderer();
   private final JFrame window = new JFrame("Banana Kick");
   private GLJPanel drawingPanel;
   private List<Point> trajectory;
-  private List<List<Point> > oldTrajectories = new ArrayList<List<Point> >();
+  private List<List<Point>> oldTrajectories = new ArrayList<List<Point>>();
   private boolean started = false;
   private Mobile ball;
   private boolean isClosed = false;
@@ -48,6 +51,8 @@ public class Renderer {
   private volatile double initialSpeed;
   private volatile double initialDirection;
   private volatile boolean restart = false;
+  private JLabel speedLabel = new JLabel("");
+  private JLabel directionLabel = new JLabel("");
 
   private Renderer() {
   }
@@ -112,20 +117,27 @@ public class Renderer {
     toolboxPanel.setLayout(new BoxLayout(toolboxPanel, BoxLayout.LINE_AXIS));
     selectedInitialDirection(50);
     selectedInitialSpeed(50);
-    toolboxPanel.add(createPropertySelector("Speed", new ChangeListener() {
+
+    JPanel speedSelector = createPropertySelector("Speed", new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
         JSlider speedSelector = (JSlider) e.getSource();
         selectedInitialSpeed(speedSelector.getValue());
       }
-    }));
-    toolboxPanel.add(createPropertySelector("Direction", new ChangeListener() {
+    });
+    speedSelector.add(speedLabel);
+    toolboxPanel.add(speedSelector);
+
+    JPanel directionSelector = createPropertySelector("Direction", new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
         JSlider directionSelector = (JSlider) e.getSource();
         selectedInitialDirection(directionSelector.getValue());
       }
-    }));
+    });
+    directionSelector.add(directionLabel);
+    toolboxPanel.add(directionSelector);
+
     JButton startButton = new JButton("Start");
     toolboxPanel.add(startButton);
     startButton.addActionListener(new ActionListener() {
@@ -159,22 +171,24 @@ public class Renderer {
     window.setVisible(true);
   }
 
-
   /**
    * @param selectedDirection a number between 0 and 100.
    */
   private void selectedInitialDirection(int selectedDirection) {
     // Scale to 0 - PI/2
+    double initialDirectionDegrees = (double) selectedDirection * 90.0 / 100.0;
     initialDirection = (double) selectedDirection * Math.PI / 200.0;
+    directionLabel.setText(String.format("%.2f", initialDirectionDegrees) + " °");
   }
 
   /**
    * @param selectedSpeed a number between 0 and 100.
    */
   private void selectedInitialSpeed(int selectedSpeed) {
-    // Scale to 1-10 m/sec.
-    initialSpeed = (double) selectedSpeed * 9.0 / 100.0;
+    // Scale to 1-20 m/sec.
+    initialSpeed = (double) selectedSpeed * 19.0 / 100.0;
     initialSpeed += 1.0;
+    speedLabel.setText(String.format("%.2f", initialSpeed) + " m/s");
   }
 
   private void start() {
@@ -196,7 +210,8 @@ public class Renderer {
       InputStream stream = getClass().getResourceAsStream("/res/football_32x32.png");
       TextureData data = TextureIO.newTextureData(glProfile, stream, false, "png");
       ballTexture = TextureIO.newTexture(data);
-    } catch (IOException exc) {
+    }
+    catch (IOException exc) {
       throw new RuntimeException(exc);
     }
   }
@@ -207,40 +222,43 @@ public class Renderer {
     gl2.glClear(GL_COLOR_BUFFER_BIT);
 
     drawGround(gl2);
-    drawTrajectories(gl2);
-    if (!hasStarted()) {
-      drawVelocityArrow(gl2);
+    synchronized (Game.getBallLock()) {
+      drawTrajectories(gl2);
+      if (!hasStarted()) {
+        drawVelocityArrow(gl2);
+      }
+      drawBall(gl2);
     }
-    drawBall(gl2);
   }
 
   private void drawTrajectories(GL2 gl2) {
-    drawTrajectory(gl2, trajectory, 1.0f, 0.0f, 0.0f);
     for (List<Point> oldTrajectory : oldTrajectories) {
       drawTrajectory(gl2, oldTrajectory, 0.5f, 0.5f, 0.5f);
     }
+    drawTrajectory(gl2, trajectory, 1.0f, 0.0f, 0.0f);
   }
 
   private void drawVelocityArrow(GL2 gl2) {
     gl2.glPushMatrix();
 
-    gl2.glColor3f(1.0f, 0.0f, 0.0f);
+    gl2.glColor3f(0.0f, 0.0f, 1.0f);
 
     double speedX = ball.getSpeed().x;
     double speedY = ball.getSpeed().y;
     double speed = ball.getSpeed().length();
-    float uniformX = metersToUniformCoordinatesX(speedX / 2.0);
-    float uniformY = metersToUniformCoordinatesY(speedY / 2.0);
+    float uniformX = metersToUniformCoordinatesX(speedX / 4.0);
+    float uniformY = metersToUniformCoordinatesY(speedY / 4.0);
 
     double speedSinA = speedY / speed;
     double speedCosA = speedX / speed;
-    double sin45 = Math.sqrt(2.0) / 2;
+    double sin30 = 1.0 / 2.0;
+    double cos30 = Math.sqrt(3.0) / 2.0;
 
-    double len = speed / 20.0;
-    float dxLeft = metersToUniformCoordinatesX(-sin45 * len * (speedCosA + speedSinA));
-    float dyLeft = metersToUniformCoordinatesY(sin45 * len * (speedCosA - speedSinA));
-    float dxRight = metersToUniformCoordinatesX(-sin45 * len * (speedCosA - speedSinA));
-    float dyRight = metersToUniformCoordinatesY(-sin45 * len * (speedCosA + speedSinA));
+    double len = speed / 40.0;
+    float dxLeft = metersToUniformCoordinatesX(- len * (cos30 * speedCosA + sin30 * speedSinA));
+    float dyLeft = metersToUniformCoordinatesY(len * (sin30 * speedCosA - cos30 * speedSinA));
+    float dxRight = metersToUniformCoordinatesX(- len * (cos30 * speedCosA - sin30 * speedSinA));
+    float dyRight = metersToUniformCoordinatesY(- len * (sin30 * speedCosA + cos30 * speedSinA));
 
     gl2.glTranslatef(
         -1.0f + metersToUniformCoordinatesX(ball.getPosition().x),
@@ -263,7 +281,7 @@ public class Renderer {
   }
 
   private void drawGround(GL2 gl2) {
-    float groundLevel = metersToUniformCoordinatesY(Game.getGroundY());
+    float groundLevel = metersToUniformCoordinatesY(Game.getGroundY() + 0.2f);
     gl2.glColor3f(0.0f, 0.7f, 0.0f);
     gl2.glBegin(GL_QUADS);
     gl2.glVertex2f(-1.0f, -1.0f);
