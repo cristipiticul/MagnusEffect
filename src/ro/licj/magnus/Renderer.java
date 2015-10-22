@@ -39,7 +39,7 @@ public class Renderer {
   private final JFrame window = new JFrame("Banana Kick");
   private GLJPanel drawingPanel;
   private List<Point> trajectory;
-  private List<List<Point> > oldTrajectories = new ArrayList<>();
+  private List<List<Point> > oldTrajectories = new ArrayList<List<Point> >();
   private boolean started = false;
   private Mobile ball;
   private boolean isClosed = false;

@@ -61,7 +61,7 @@ public class Game {
 
   private void update() {
     if (renderer.shouldRestart()) {
-      trajectory = new ArrayList<>();
+      trajectory = new ArrayList<Point>();
       renderer.setCurrentTrajectory(trajectory);
       gameOver = false;
       ball.setPosition(new Point(INITIAL_BALL_POSITION));
