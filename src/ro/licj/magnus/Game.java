@@ -9,11 +9,12 @@ import java.util.List;
 public class Game {
 
   private static final double AIR_DENSITY = 1.2;
-  private static final double DRAG_COEFFICIENT = 0.47;
   private static final double BALL_CROSS_SURFACE = 0.0336;
   private static final double GROUND_Y = 1.0;
   private static final Point INITIAL_BALL_POSITION = new Point(1.0, GROUND_Y + 0.12);
   private static final Object ballLock = new Object();
+  private static final float MAX_GROUND_X = 1000.0f;
+  private static double dragCoefficient = 0.47;
   private static Game instance = new Game();
   private Renderer renderer = Renderer.getInstance();
   private Mobile ball = new Mobile(new Point(INITIAL_BALL_POSITION), 0.42, new Vector(0.23, 0.23));
@@ -35,13 +36,21 @@ public class Game {
     return GROUND_Y;
   }
 
+  public static Object getBallLock() {
+    return ballLock;
+  }
+
+  public static float getMaxGroundX() {
+    return MAX_GROUND_X;
+  }
+
   public void run() {
     ball.setSpeed(new Vector(1.0, 10.0));
     try {
       renderer.init(ball, trajectory);
+      restart();
       loop();
-    }
-    catch (Exception ex) {
+    } catch (Exception ex) {
       System.out.println("An error has occured: " + ex.toString());
       ex.printStackTrace();
     }
@@ -62,19 +71,15 @@ public class Game {
 
   private void update() {
     if (renderer.shouldRestart()) {
-      trajectory = new ArrayList<Point>();
-      renderer.setCurrentTrajectory(trajectory);
-      gameOver = false;
-      ball.setPosition(new Point(INITIAL_BALL_POSITION));
+      restart();
       renderer.setRestart(false);
       renderer.stop();
     }
     if (renderer.hasStarted()) {
       if (!gameOver) {
         synchronized (ballLock) {
-          trajectory.add(new Point(ball.getPosition().x, ball.getPosition().y));
           Vector gravitationalForce = new Vector(0.0, -9.81 * ball.getMass());
-          double coeff = -AIR_DENSITY * DRAG_COEFFICIENT * BALL_CROSS_SURFACE / 2;
+          double coeff = -AIR_DENSITY * dragCoefficient * BALL_CROSS_SURFACE / 2;
           Vector frictionForce = Vector.product(coeff, Vector.product(ball.getSpeed(), ball.getSpeed()));
 
           ball.applyForce(Vector.sum(gravitationalForce, frictionForce));
@@ -87,22 +92,26 @@ public class Game {
             newPosition.x -= dx;
             newPosition.y -= dy;
             ball.setPosition(newPosition);
-            trajectory.add(new Point(ball.getPosition().x, ball.getPosition().y));
             gameOver = true;
           }
+          trajectory.add(new Point(ball.getPosition().x, ball.getPosition().y));
         }
       }
-    }
-    else {
+    } else {
       double initialSpeedX = renderer.getInitialSpeed() * Math.cos(renderer.getInitialDirection());
       double initialSpeedY = renderer.getInitialSpeed() * Math.sin(renderer.getInitialDirection());
+      dragCoefficient = renderer.getDragCoefficient();
       synchronized (ballLock) {
         ball.setSpeed(new Vector(initialSpeedX, initialSpeedY));
       }
     }
   }
 
-  public static Object getBallLock() {
-    return ballLock;
+  private void restart() {
+    trajectory = new ArrayList<Point>();
+    renderer.setCurrentTrajectory(trajectory);
+    gameOver = false;
+    ball.setPosition(new Point(INITIAL_BALL_POSITION));
+    trajectory.add(new Point(ball.getPosition()));
   }
 }
