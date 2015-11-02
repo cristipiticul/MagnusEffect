@@ -40,7 +40,7 @@ public class Renderer {
   private static final int WINDOW_WIDTH = 1024;
   private static final int WINDOW_HEIGHT = 720;
   private static final int PIXELS_PER_METER_MAX = 125;
-  private static final int PIXELS_PER_METER_MIN = 25;
+  private static final int PIXELS_PER_METER_MIN = 5;
   private static final float BALL_POSITION_UNIFORM_MAX = 0.75f;
   private static final float BALL_POSITION_UNIFORM_MIN = -0.75f;
   private static int PIXELS_PER_METER = 75;
@@ -330,8 +330,8 @@ public class Renderer {
   }
 
   private void zoomIn() {
-    if (PIXELS_PER_METER + 25 <= PIXELS_PER_METER_MAX) {
-      PIXELS_PER_METER += 25;
+    if (PIXELS_PER_METER + 5 <= PIXELS_PER_METER_MAX) {
+      PIXELS_PER_METER += 5;
     } else {
       PIXELS_PER_METER = PIXELS_PER_METER_MAX;
     }
@@ -339,8 +339,8 @@ public class Renderer {
   }
 
   private void zoomOut() {
-    if (PIXELS_PER_METER - 25 >= PIXELS_PER_METER_MIN) {
-      PIXELS_PER_METER -= 25;
+    if (PIXELS_PER_METER - 5 >= PIXELS_PER_METER_MIN) {
+      PIXELS_PER_METER -= 5;
     } else {
       PIXELS_PER_METER = PIXELS_PER_METER_MIN;
     }
@@ -416,8 +416,8 @@ public class Renderer {
 
     gl2.glLoadIdentity();
     float lineWidth = (float) PIXELS_PER_METER / 25;
-    if (lineWidth <= 1.0f) {
-      lineWidth = 1.0f;
+    if (lineWidth <= 2.0f) {
+      lineWidth = 2.0f;
     }
     gl2.glLineWidth(lineWidth);
     synchronized (Game.getInstance().getBallLock()) {
