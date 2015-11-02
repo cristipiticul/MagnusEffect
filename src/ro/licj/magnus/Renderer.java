@@ -117,6 +117,7 @@ public class Renderer {
     });
 
     window.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    window.setExtendedState(Frame.MAXIMIZED_BOTH);
     window.setVisible(true);
   }
 
@@ -187,7 +188,7 @@ public class Renderer {
     JPanel buttonsPanel = new JPanel(new GridBagLayout());
     GridBagConstraints buttonConstraints = new GridBagConstraints();
     buttonConstraints.fill = GridBagConstraints.HORIZONTAL;
-    buttonConstraints.insets = new Insets(5, 0, 5, 0);
+    buttonConstraints.insets = new Insets(5, 5, 5, 5);
 
     JButton startButton = new JButton("Start");
     startButton.addActionListener(new ActionListener() {
@@ -207,8 +208,8 @@ public class Renderer {
         restart = true;
       }
     });
-    buttonConstraints.gridx = 0;
-    buttonConstraints.gridy = 1;
+    buttonConstraints.gridx = 1;
+    buttonConstraints.gridy = 0;
     buttonsPanel.add(restartButton, buttonConstraints);
 
     JButton clearButton = new JButton("Clear");
@@ -218,8 +219,8 @@ public class Renderer {
         clear = true;
       }
     });
-    buttonConstraints.gridx = 0;
-    buttonConstraints.gridy = 2;
+    buttonConstraints.gridx = 2;
+    buttonConstraints.gridy = 0;
     buttonsPanel.add(clearButton, buttonConstraints);
 
     JButton zoomInButton = new JButton("Zoom in");
@@ -230,7 +231,7 @@ public class Renderer {
       }
     });
     buttonConstraints.gridx = 0;
-    buttonConstraints.gridy = 3;
+    buttonConstraints.gridy = 1;
     buttonsPanel.add(zoomInButton, buttonConstraints);
 
     JButton zoomOutButton = new JButton("Zoom out");
@@ -240,18 +241,15 @@ public class Renderer {
         zoomOut();
       }
     });
-    buttonConstraints.gridx = 0;
-    buttonConstraints.gridy = 4;
+    buttonConstraints.gridx = 1;
+    buttonConstraints.gridy = 1;
     buttonsPanel.add(zoomOutButton, buttonConstraints);
     return buttonsPanel;
   }
 
   private JPanel createSelectorsPanel() {
     JPanel selectorsPanel = new JPanel();
-    selectorsPanel.setLayout(new GridBagLayout());
-    GridBagConstraints selectorConstraints = new GridBagConstraints();
-    selectorConstraints.fill = GridBagConstraints.BOTH;
-    selectorConstraints.insets = new Insets(5, 5, 5, 5);
+    selectorsPanel.setLayout(new BoxLayout(selectorsPanel, BoxLayout.LINE_AXIS));
 
     selectedInitialSpeed(50);
     JPanel speedSelector = createPropertySelector("Speed", new ChangeListener() {
@@ -262,9 +260,7 @@ public class Renderer {
       }
     });
     speedSelector.add(speedLabel);
-    selectorConstraints.gridx = 0;
-    selectorConstraints.gridy = 0;
-    selectorsPanel.add(speedSelector, selectorConstraints);
+    selectorsPanel.add(speedSelector);
 
     selectedInitialDirection(50);
     JPanel directionSelector = createPropertySelector("Direction", new ChangeListener() {
@@ -275,9 +271,7 @@ public class Renderer {
       }
     });
     directionSelector.add(directionLabel);
-    selectorConstraints.gridx = 1;
-    selectorConstraints.gridy = 0;
-    selectorsPanel.add(directionSelector, selectorConstraints);
+    selectorsPanel.add(directionSelector);
 
     selectedDragCoefficient(50);
     JPanel dragCoefficientSelector = createPropertySelector("Drag coefficient", new ChangeListener() {
@@ -288,9 +282,7 @@ public class Renderer {
       }
     });
     dragCoefficientSelector.add(dragCoefficientLabel);
-    selectorConstraints.gridx = 0;
-    selectorConstraints.gridy = 1;
-    selectorsPanel.add(dragCoefficientSelector, selectorConstraints);
+    selectorsPanel.add(dragCoefficientSelector);
 
     selectedAngularVelocity(50);
     JPanel angularVelocitySelector = createPropertySelector("Angular velocity", new ChangeListener() {
@@ -301,9 +293,7 @@ public class Renderer {
       }
     });
     angularVelocitySelector.add(angularVelocityLabel);
-    selectorConstraints.gridx = 1;
-    selectorConstraints.gridy = 1;
-    selectorsPanel.add(angularVelocitySelector, selectorConstraints);
+    selectorsPanel.add(angularVelocitySelector);
 
     return selectorsPanel;
   }

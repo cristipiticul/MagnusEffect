@@ -149,11 +149,13 @@ public class Game {
     }
     renderer.getTrajectoriesTableModel().removeAllElements();
     currentTrajectory = new Trajectory(ColorGenerator.getInstance().current());
-    currentTrajectory.addPoint(ball.getPosition());
-    synchronized (trajectoriesLock) {
-      trajectories.add(currentTrajectory);
+    if (!gameOver) {
+      currentTrajectory.addPoint(ball.getPosition());
+      synchronized (trajectoriesLock) {
+        trajectories.add(currentTrajectory);
+      }
+      renderer.getTrajectoriesTableModel().addElement(currentTrajectory);
     }
-    renderer.getTrajectoriesTableModel().addElement(currentTrajectory);
   }
 
   private void restart() {
