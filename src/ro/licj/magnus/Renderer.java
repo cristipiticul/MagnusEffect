@@ -6,13 +6,19 @@ import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
+import ro.licj.magnus.ui.*;
 import ro.licj.magnus.util.Point;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableModel;
 import java.awt.*;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -21,7 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.jogamp.opengl.GL2.*;
@@ -44,8 +49,6 @@ public class Renderer {
   private static Renderer instance = new Renderer();
   private final JFrame window = new JFrame("Banana Kick");
   private GLJPanel drawingPanel;
-  private List<Point> trajectory;
-  private List<List<Point>> oldTrajectories = new ArrayList<List<Point>>();
   private boolean started = false;
   private Mobile ball;
   private boolean isClosed = false;
@@ -54,12 +57,23 @@ public class Renderer {
   private volatile double initialSpeed;
   private volatile double initialDirection;
   private volatile boolean restart = false;
+  private volatile boolean clear = false;
   private JLabel speedLabel = new JLabel("");
   private JLabel directionLabel = new JLabel("");
   private JLabel dragCoefficientLabel = new JLabel("");
+  private JLabel angularVelocityLabel = new JLabel("");
   private float cameraX;
   private float cameraY;
   private double dragCoefficient;
+  private GenericTableModel<Trajectory> trajectoriesTableModel;
+  private List<Trajectory> trajectories;
+  private double angularVelocity;
+  private JLabel speedXJLabel = new JLabel();
+  private JLabel speedYJLabel = new JLabel();
+  private JLabel magnusForceJLabel = new JLabel();
+  private volatile double speedX = 0.0;
+  private volatile double speedY = 0.0;
+  private volatile double magnusForce = 0.0;
 
   private Renderer() {
   }
@@ -84,27 +98,160 @@ public class Renderer {
     return dragCoefficient;
   }
 
-  public void init(Mobile ball, List<Point> trajectory) {
+  public void init(Mobile ball, List<Trajectory> trajectories) {
     this.ball = ball;
-    this.trajectory = trajectory;
+    this.trajectories = trajectories;
 
-    glProfile = GLProfile.getDefault();
-    GLCapabilities glcapabilities = new GLCapabilities(glProfile);
-    glcapabilities.setDoubleBuffered(true);
-    drawingPanel = new GLJPanel(glcapabilities);
+    window.getContentPane().add(createTrajectoriesTablePanel(), BorderLayout.EAST);
 
+    window.getContentPane().add(createToolboxPanel(), BorderLayout.SOUTH);
+
+    initDrawingPanel();
+    window.getContentPane().add(drawingPanel, BorderLayout.CENTER);
+
+    window.addWindowListener(new WindowAdapter() {
+      public void windowClosing(WindowEvent windowevent) {
+        window.dispose();
+        isClosed = true;
+      }
+    });
+
+    window.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    window.setVisible(true);
+  }
+
+  private JScrollPane createTrajectoriesTablePanel() {
+    trajectoriesTableModel = new GenericTableModel<Trajectory>(TrajectoryColumnifier.getInstance());
+    JTable trajectoriesJTable = new JTable(trajectoriesTableModel);
+    trajectoriesJTable.setDefaultRenderer(ro.licj.magnus.ui.Color.class, new DefaultTableCellRenderer() {
+      @Override
+      public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+        ro.licj.magnus.ui.Color displayedColor = (ro.licj.magnus.ui.Color) value;
+
+        c.setBackground(new java.awt.Color(displayedColor.r, displayedColor.g, displayedColor.b));
+
+        return c;
+      }
+    });
+    JScrollPane panel = new JScrollPane(trajectoriesJTable);
+    panel.setPreferredSize(new Dimension(150, 0));
+
+    return panel;
+  }
+
+  private JPanel createToolboxPanel() {
     JPanel toolboxPanel = new JPanel();
     toolboxPanel.setLayout(new BoxLayout(toolboxPanel, BoxLayout.LINE_AXIS));
 
-    JPanel selectorsPanel = new JPanel();
-    selectorsPanel.setLayout(new BoxLayout(selectorsPanel, BoxLayout.PAGE_AXIS));
-    toolboxPanel.add(selectorsPanel);
+    toolboxPanel.add(createInformationPanel());
+    toolboxPanel.add(createSelectorsPanel());
+    toolboxPanel.add(createButtonsPanel());
 
+    return toolboxPanel;
+  }
+
+  private JPanel createInformationPanel() {
+    JPanel informationPanelContainer = new JPanel(new BorderLayout());
+
+    JPanel informationPanel = new JPanel();
+    informationPanel.setBorder(new EmptyBorder(30, 0, 30, 0));
+    informationPanel.setLayout(new GridLayout(3, 2, 5, 5));
+    JLabel speedXTextJLabel = new JLabel("Speed X:");
+    speedXTextJLabel.setHorizontalAlignment(JLabel.RIGHT);
+    JLabel speedYTextJLabel = new JLabel("Speed Y:");
+    speedYTextJLabel.setHorizontalAlignment(JLabel.RIGHT);
+    JLabel magnusForceTextJLabel = new JLabel("Magnus force:");
+    magnusForceTextJLabel.setHorizontalAlignment(JLabel.RIGHT);
+    refreshInformationPanel();
+    informationPanel.add(speedXTextJLabel);
+    informationPanel.add(speedXJLabel);
+    informationPanel.add(speedYTextJLabel);
+    informationPanel.add(speedYJLabel);
+    informationPanel.add(magnusForceTextJLabel);
+    informationPanel.add(magnusForceJLabel);
+
+    informationPanelContainer.add(informationPanel, BorderLayout.NORTH);
+
+    return informationPanelContainer;
+  }
+
+  public void refreshInformationPanel() {
+    speedXJLabel.setText(String.format("%.2f m/s", speedX));
+    speedYJLabel.setText(String.format("%.2f m/s", speedY));
+    magnusForceJLabel.setText(String.format("%.2f N", magnusForce));
+  }
+
+  private JPanel createButtonsPanel() {
     JPanel buttonsPanel = new JPanel(new GridBagLayout());
-    GridBagConstraints constraints = new GridBagConstraints();
-    constraints.fill = GridBagConstraints.HORIZONTAL;
-    constraints.insets = new Insets(5,0,5,0);
-    toolboxPanel.add(buttonsPanel);
+    GridBagConstraints buttonConstraints = new GridBagConstraints();
+    buttonConstraints.fill = GridBagConstraints.HORIZONTAL;
+    buttonConstraints.insets = new Insets(5, 0, 5, 0);
+
+    JButton startButton = new JButton("Start");
+    startButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        start();
+      }
+    });
+    buttonConstraints.gridx = 0;
+    buttonConstraints.gridy = 0;
+    buttonsPanel.add(startButton, buttonConstraints);
+
+    JButton restartButton = new JButton("Restart");
+    restartButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        restart = true;
+      }
+    });
+    buttonConstraints.gridx = 0;
+    buttonConstraints.gridy = 1;
+    buttonsPanel.add(restartButton, buttonConstraints);
+
+    JButton clearButton = new JButton("Clear");
+    clearButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        clear = true;
+      }
+    });
+    buttonConstraints.gridx = 0;
+    buttonConstraints.gridy = 2;
+    buttonsPanel.add(clearButton, buttonConstraints);
+
+    JButton zoomInButton = new JButton("Zoom in");
+    zoomInButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        zoomIn();
+      }
+    });
+    buttonConstraints.gridx = 0;
+    buttonConstraints.gridy = 3;
+    buttonsPanel.add(zoomInButton, buttonConstraints);
+
+    JButton zoomOutButton = new JButton("Zoom out");
+    zoomOutButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        zoomOut();
+      }
+    });
+    buttonConstraints.gridx = 0;
+    buttonConstraints.gridy = 4;
+    buttonsPanel.add(zoomOutButton, buttonConstraints);
+    return buttonsPanel;
+  }
+
+  private JPanel createSelectorsPanel() {
+    JPanel selectorsPanel = new JPanel();
+    selectorsPanel.setLayout(new GridBagLayout());
+    GridBagConstraints selectorConstraints = new GridBagConstraints();
+    selectorConstraints.fill = GridBagConstraints.BOTH;
+    selectorConstraints.insets = new Insets(5, 5, 5, 5);
 
     selectedInitialSpeed(50);
     JPanel speedSelector = createPropertySelector("Speed", new ChangeListener() {
@@ -115,7 +262,9 @@ public class Renderer {
       }
     });
     speedSelector.add(speedLabel);
-    selectorsPanel.add(speedSelector);
+    selectorConstraints.gridx = 0;
+    selectorConstraints.gridy = 0;
+    selectorsPanel.add(speedSelector, selectorConstraints);
 
     selectedInitialDirection(50);
     JPanel directionSelector = createPropertySelector("Direction", new ChangeListener() {
@@ -126,7 +275,9 @@ public class Renderer {
       }
     });
     directionSelector.add(directionLabel);
-    selectorsPanel.add(directionSelector);
+    selectorConstraints.gridx = 1;
+    selectorConstraints.gridy = 0;
+    selectorsPanel.add(directionSelector, selectorConstraints);
 
     selectedDragCoefficient(50);
     JPanel dragCoefficientSelector = createPropertySelector("Drag coefficient", new ChangeListener() {
@@ -137,64 +288,31 @@ public class Renderer {
       }
     });
     dragCoefficientSelector.add(dragCoefficientLabel);
-    selectorsPanel.add(dragCoefficientSelector);
+    selectorConstraints.gridx = 0;
+    selectorConstraints.gridy = 1;
+    selectorsPanel.add(dragCoefficientSelector, selectorConstraints);
 
-    JButton startButton = new JButton("Start");
-    startButton.addActionListener(new ActionListener() {
+    selectedAngularVelocity(50);
+    JPanel angularVelocitySelector = createPropertySelector("Angular velocity", new ChangeListener() {
       @Override
-      public void actionPerformed(ActionEvent e) {
-        start();
+      public void stateChanged(ChangeEvent e) {
+        JSlider angularVelocitySelector = (JSlider) e.getSource();
+        selectedAngularVelocity(angularVelocitySelector.getValue());
       }
     });
-    constraints.gridx = 0;
-    constraints.gridy = 0;
-    buttonsPanel.add(startButton, constraints);
+    angularVelocitySelector.add(angularVelocityLabel);
+    selectorConstraints.gridx = 1;
+    selectorConstraints.gridy = 1;
+    selectorsPanel.add(angularVelocitySelector, selectorConstraints);
 
-    JButton restartButton = new JButton("Restart");
-    restartButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        setRestart(true);
-      }
-    });
-    constraints.gridx = 0;
-    constraints.gridy = 1;
-    buttonsPanel.add(restartButton, constraints);
+    return selectorsPanel;
+  }
 
-    JButton clearButton = new JButton("Clear");
-    clearButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        oldTrajectories.clear();
-      }
-    });
-    constraints.gridx = 0;
-    constraints.gridy = 2;
-    buttonsPanel.add(clearButton, constraints);
-
-    JButton zoomInButton = new JButton("Zoom in");
-    zoomInButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        zoomIn();
-      }
-    });
-    constraints.gridx = 0;
-    constraints.gridy = 3;
-    buttonsPanel.add(zoomInButton, constraints);
-
-    JButton zoomOutButton = new JButton("Zoom out");
-    zoomOutButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        zoomOut();
-      }
-    });
-    constraints.gridx = 0;
-    constraints.gridy = 4;
-    buttonsPanel.add(zoomOutButton, constraints);
-
-    window.getContentPane().add(drawingPanel, BorderLayout.CENTER);
+  private void initDrawingPanel() {
+    glProfile = GLProfile.getDefault();
+    GLCapabilities glcapabilities = new GLCapabilities(glProfile);
+    glcapabilities.setDoubleBuffered(true);
+    drawingPanel = new GLJPanel(glcapabilities);
 
     drawingPanel.addGLEventListener(new GLEventListener() {
       @Override
@@ -219,17 +337,6 @@ public class Renderer {
         glautodrawable.swapBuffers();
       }
     });
-
-    window.addWindowListener(new WindowAdapter() {
-      public void windowClosing(WindowEvent windowevent) {
-        window.dispose();
-        isClosed = true;
-      }
-    });
-
-    window.getContentPane().add(toolboxPanel, BorderLayout.SOUTH);
-    window.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-    window.setVisible(true);
   }
 
   private void zoomIn() {
@@ -256,29 +363,36 @@ public class Renderer {
   }
 
   /**
-   * @param selectedDirection a number between 0 and 100.
+   * @param selectedDirectionPercent a number between 0 and 100.
    */
-  private void selectedInitialDirection(int selectedDirection) {
+  private void selectedInitialDirection(int selectedDirectionPercent) {
     // Scale to 0 - PI/2
-    double initialDirectionDegrees = (double) selectedDirection * 90.0 / 100.0;
-    initialDirection = (double) selectedDirection * Math.PI / 200.0;
+    double initialDirectionDegrees = (double) selectedDirectionPercent * 90.0 / 100.0;
+    initialDirection = (double) selectedDirectionPercent * Math.PI / 200.0;
     directionLabel.setText(String.format("%.2f", initialDirectionDegrees) + " °");
   }
 
   /**
-   * @param selectedSpeed a number between 0 and 100.
+   * @param selectedSpeedPercent a number between 0 and 100.
    */
-  private void selectedInitialSpeed(int selectedSpeed) {
+  private void selectedInitialSpeed(int selectedSpeedPercent) {
     // Scale to 1-35 m/sec.
-    initialSpeed = (double) selectedSpeed * 34.0 / 100.0;
+    initialSpeed = (double) selectedSpeedPercent * 34.0 / 100.0;
     initialSpeed += 1.0;
     speedLabel.setText(String.format("%.2f", initialSpeed) + " m/s");
   }
 
-  private void selectedDragCoefficient(int selectedDragCoeff) {
+  private void selectedDragCoefficient(int selectedDragCoeffPercent) {
     // Scale to 0-0.14
-    dragCoefficient = (double) selectedDragCoeff * 0.14 / 100.0;
+    dragCoefficient = (double) selectedDragCoeffPercent * 0.14 / 100.0;
     dragCoefficientLabel.setText(String.format("%.2f", dragCoefficient));
+  }
+
+  private void selectedAngularVelocity(int angularVelocityPercent) {
+    // Scale to 0-10 rotations/s = 0-10*2pi rad/s
+    double angularVelocityRotations = (double) angularVelocityPercent / 10.0;
+    angularVelocity = angularVelocityRotations * 2 * Math.PI;
+    angularVelocityLabel.setText(String.format("%.2f", angularVelocityRotations) + " rev/s");
   }
 
   private void start() {
@@ -316,26 +430,9 @@ public class Renderer {
       lineWidth = 1.0f;
     }
     gl2.glLineWidth(lineWidth);
-    synchronized (Game.getBallLock()) {
-      float ballX = positionMetersToUniformCoordinatesX(ball.getPosition().x);
-      if (ballX - cameraX >= BALL_POSITION_UNIFORM_MAX) {
-        cameraX = -BALL_POSITION_UNIFORM_MAX + ballX;
-      } else if (ballX - cameraX <= BALL_POSITION_UNIFORM_MIN) {
-        cameraX = -BALL_POSITION_UNIFORM_MIN + ballX;
-      }
+    synchronized (Game.getInstance().getBallLock()) {
+      updateCameraPosition();
 
-      float ballY = positionMetersToUniformCoordinatesY(ball.getPosition().y);
-      if (-cameraY + ballY >= BALL_POSITION_UNIFORM_MAX) {
-        cameraY = -BALL_POSITION_UNIFORM_MAX + ballY;
-      } else if (ballY - cameraY <= BALL_POSITION_UNIFORM_MIN) {
-        cameraY = -BALL_POSITION_UNIFORM_MIN + ballY;
-      }
-      if (cameraY <= 0.0f) {
-        cameraY = 0.0f;
-      }
-      if (cameraX <= 0.0f) {
-        cameraX = 0.0f;
-      }
       gl2.glTranslatef(-cameraX, -cameraY, 0.0f);
       drawGround(gl2);
       drawTrajectories(gl2);
@@ -346,11 +443,34 @@ public class Renderer {
     }
   }
 
-  private void drawTrajectories(GL2 gl2) {
-    for (List<Point> oldTrajectory : oldTrajectories) {
-      drawTrajectory(gl2, oldTrajectory, 0.5f, 0.5f, 0.5f);
+  private void updateCameraPosition() {
+    float ballX = positionMetersToUniformCoordinatesX(ball.getPosition().x);
+    if (ballX - cameraX >= BALL_POSITION_UNIFORM_MAX) {
+      cameraX = -BALL_POSITION_UNIFORM_MAX + ballX;
+    } else if (ballX - cameraX <= BALL_POSITION_UNIFORM_MIN) {
+      cameraX = -BALL_POSITION_UNIFORM_MIN + ballX;
     }
-    drawTrajectory(gl2, trajectory, 1.0f, 0.0f, 0.0f);
+    if (cameraX <= 0.0f) {
+      cameraX = 0.0f;
+    }
+
+    float ballY = positionMetersToUniformCoordinatesY(ball.getPosition().y);
+    if (-cameraY + ballY >= BALL_POSITION_UNIFORM_MAX) {
+      cameraY = -BALL_POSITION_UNIFORM_MAX + ballY;
+    } else if (ballY - cameraY <= BALL_POSITION_UNIFORM_MIN) {
+      cameraY = -BALL_POSITION_UNIFORM_MIN + ballY;
+    }
+    if (cameraY <= 0.0f) {
+      cameraY = 0.0f;
+    }
+  }
+
+  private void drawTrajectories(GL2 gl2) {
+    synchronized (Game.getInstance().getTrajectoriesLock()) {
+      for (Trajectory trajectory : trajectories) {
+        drawTrajectory(gl2, trajectory);
+      }
+    }
   }
 
   private void drawVelocityArrow(GL2 gl2) {
@@ -407,36 +527,39 @@ public class Renderer {
     gl2.glEnd();
   }
 
-  private void drawTrajectory(GL2 gl2, List<Point> trajectory, float red, float green, float blue) {
-    if (trajectory.size() <= 1) {
-      return;
+  private void drawTrajectory(GL2 gl2, Trajectory trajectory) {
+    synchronized (trajectory) {
+      List<Point> trajectoryPoints = trajectory.getPoints();
+      if (trajectoryPoints.size() <= 1) {
+        return;
+      }
+
+      int numberOfPoints = trajectoryPoints.size();
+      float[] tmp = new float[2 * numberOfPoints];
+      for (int i = 0; i < numberOfPoints; i++) {
+        Point point = trajectoryPoints.get(i);
+        float x = positionMetersToUniformCoordinatesX(point.x);
+        float y = positionMetersToUniformCoordinatesY(point.y);
+        tmp[2 * i] = x;
+        tmp[2 * i + 1] = y;
+      }
+      FloatBuffer pointBuffer = GLBuffers.newDirectFloatBuffer(tmp);
+
+      gl2.glEnableClientState(GL_VERTEX_ARRAY);
+      gl2.glVertexPointer(2, GL_FLOAT, 0, pointBuffer);
+
+      ShortBuffer indicesBuffer = ShortBuffer.allocate(numberOfPoints * 4 - 4);
+      for (short i = 0; i < 2 * numberOfPoints - 2; i++) {
+        indicesBuffer.put(i);
+        indicesBuffer.put((short) (i + 1));
+      }
+      indicesBuffer.flip();
+
+      gl2.glColor3f(trajectory.getColor().r, trajectory.getColor().g, trajectory.getColor().b);
+      gl2.glDrawElements(GL_LINES, 2 * numberOfPoints - 2, GL_UNSIGNED_SHORT, indicesBuffer);
+
+      gl2.glDisableClientState(GL_VERTEX_ARRAY);
     }
-
-    int numberOfPoints = trajectory.size();
-    float[] tmp = new float[2 * numberOfPoints];
-    for (int i = 0; i < numberOfPoints; i++) {
-      Point point = trajectory.get(i);
-      float x = positionMetersToUniformCoordinatesX(point.x);
-      float y = positionMetersToUniformCoordinatesY(point.y);
-      tmp[2 * i] = x;
-      tmp[2 * i + 1] = y;
-    }
-    FloatBuffer pointBuffer = GLBuffers.newDirectFloatBuffer(tmp);
-
-    gl2.glEnableClientState(GL_VERTEX_ARRAY);
-    gl2.glVertexPointer(2, GL_FLOAT, 0, pointBuffer);
-
-    ShortBuffer indicesBuffer = ShortBuffer.allocate(numberOfPoints * 4 - 4);
-    for (short i = 0; i < 2 * numberOfPoints - 2; i++) {
-      indicesBuffer.put(i);
-      indicesBuffer.put((short) (i + 1));
-    }
-    indicesBuffer.flip();
-
-    gl2.glColor3f(red, green, blue);
-    gl2.glDrawElements(GL_LINES, 2 * numberOfPoints - 2, GL_UNSIGNED_SHORT, indicesBuffer);
-
-    gl2.glDisableClientState(GL_VERTEX_ARRAY);
   }
 
   private void drawBall(GL2 gl2) {
@@ -464,7 +587,7 @@ public class Renderer {
         metersToUniformCoordinatesY(ball.getSize().y) / 2.0f,
         1.0f
     );
-    gl2.glRotatef((float) ball.getAngle(), 0.0f, 0.0f, 1.0f);
+    gl2.glRotatef((float) (ball.getAngle() * 90.0 / Math.PI), 0.0f, 0.0f, 1.0f);
 
     gl2.glBegin(GL_TRIANGLES);
     gl2.glTexCoord2f(0.0f, 1.0f);
@@ -522,16 +645,39 @@ public class Renderer {
     return initialDirection;
   }
 
+  public double getAngularVelocity() {
+    return angularVelocity;
+  }
+
   public boolean shouldRestart() {
     return restart;
   }
 
-  public void setRestart(boolean restart) {
-    this.restart = restart;
+  public void resetRestartFlag() {
+    restart = false;
   }
 
-  public void setCurrentTrajectory(List<Point> trajectory) {
-    oldTrajectories.add(this.trajectory);
-    this.trajectory = trajectory;
+  public boolean shouldClearTrajectories() {
+    return clear;
+  }
+
+  public void resetClearTrajectoriesFlag() {
+    clear = false;
+  }
+
+  public GenericTableModel<Trajectory> getTrajectoriesTableModel() {
+    return trajectoriesTableModel;
+  }
+
+  public void setSpeedX(double speedX) {
+    this.speedX = speedX;
+  }
+
+  public void setSpeedY(double speedY) {
+    this.speedY = speedY;
+  }
+
+  public void setMagnusForce(double magnusForce) {
+    this.magnusForce = magnusForce;
   }
 }

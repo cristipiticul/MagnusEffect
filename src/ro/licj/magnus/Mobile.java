@@ -7,7 +7,10 @@ public class Mobile {
 
   private double mass;
   private Point position;
+
   private double angle;
+  private double angularVelocity;
+
   private Vector speed;
 
   private Vector size;
@@ -40,10 +43,6 @@ public class Mobile {
     return angle;
   }
 
-  public void setAngle(double angle) {
-    this.angle = angle;
-  }
-
   public Vector getSpeed() {
     return speed;
   }
@@ -56,7 +55,16 @@ public class Mobile {
     return size;
   }
 
-  public void updatePosition() {
+  public void update() {
+    updateAngle();
+    updatePosition();
+  }
+
+  private void updateAngle() {
+    angle += angularVelocity * Timer.UPDATE_TIME;
+  }
+
+  private void updatePosition() {
     position.x += speed.x * Timer.UPDATE_TIME;
     position.y += speed.y * Timer.UPDATE_TIME;
   }
@@ -64,5 +72,13 @@ public class Mobile {
   public void applyForce(Vector force) {
     speed.x += (force.x / mass) * Timer.UPDATE_TIME;
     speed.y += (force.y / mass) * Timer.UPDATE_TIME;
+  }
+
+  public void setAngularVelocity(double angularVelocity) {
+    this.angularVelocity = angularVelocity;
+  }
+
+  public double getAngularVelocity() {
+    return angularVelocity;
   }
 }
