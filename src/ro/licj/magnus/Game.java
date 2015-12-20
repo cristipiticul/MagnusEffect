@@ -9,18 +9,16 @@ import java.util.List;
 
 public class Game {
 
-  private static final double AIR_DENSITY = 1.2;
-  private static final double BALL_CROSS_SURFACE = 0.0336;
   private static final double GROUND_Y = 1.0;
   private static final Point INITIAL_BALL_POSITION = new Point(1.0, GROUND_Y + 0.12);
   private static final float MAX_GROUND_X = 1000.0f;
-  private static final double MAGNUS_COEFFICIENT = 0.0023;
-  private static double dragCoefficient = 0.47;
+  private static final double MAGNUS_COEFFICIENT = 0.01;
+  private static double dragCoefficient = 0.142;
   private static Game instance = new Game();
   private final Object ballLock = new Object();
   private final Object trajectoriesLock = new Object();
   private Renderer renderer = Renderer.getInstance();
-  private Mobile ball = new Mobile(new Point(INITIAL_BALL_POSITION), 0.42, new Vector(0.23, 0.23));
+  private Mobile ball = new Mobile(new Point(INITIAL_BALL_POSITION), 0.45, new Vector(0.23, 0.23));
   private boolean gameOver = false;
   private List<Trajectory> trajectories = new ArrayList<Trajectory>();
   private Trajectory currentTrajectory;
@@ -101,8 +99,7 @@ public class Game {
       if (!gameOver) {
         synchronized (ballLock) {
           Vector gravitationalForce = new Vector(0.0, -9.81 * ball.getMass());
-          double coeff = -AIR_DENSITY * dragCoefficient * BALL_CROSS_SURFACE / 2;
-          Vector frictionForce = Vector.product(coeff, Vector.product(ball.getSpeed(), ball.getSpeed()));
+          Vector frictionForce = Vector.product(-dragCoefficient, ball.getSpeed());
           Vector magnusForceTmp = Vector.product(MAGNUS_COEFFICIENT * ball.getAngularVelocity(), ball.getSpeed());
           Vector magnusForce = new Vector(-magnusForceTmp.y, magnusForceTmp.x);
 

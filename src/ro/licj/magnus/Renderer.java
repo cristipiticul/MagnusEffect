@@ -43,6 +43,10 @@ public class Renderer {
   private static final int PIXELS_PER_METER_MIN = 5;
   private static final float BALL_POSITION_UNIFORM_MAX = 0.75f;
   private static final float BALL_POSITION_UNIFORM_MIN = -0.75f;
+  private static final float CLOUD_SIZE_X_MAX = 1.0f;
+  private static final float CLOUD_SIZE_Y_MAX = CLOUD_SIZE_X_MAX / 2.0f;
+  private static final float CLOUD_SIZE_X_MIN = 0.8f;
+  private static final float CLOUD_SIZE_Y_MIN = CLOUD_SIZE_X_MIN / 2.0f;
   private static int PIXELS_PER_METER = 75;
   private static int DRAWING_PANEL_WIDTH;
   private static int DRAWING_PANEL_HEIGHT;
@@ -54,6 +58,7 @@ public class Renderer {
   private boolean isClosed = false;
   private GLProfile glProfile;
   private Texture ballTexture;
+  private Texture cloudsTexture;
   private volatile double initialSpeed;
   private volatile double initialDirection;
   private volatile boolean restart = false;
@@ -373,8 +378,8 @@ public class Renderer {
   }
 
   private void selectedDragCoefficient(int selectedDragCoeffPercent) {
-    // Scale to 0-0.14
-    dragCoefficient = (double) selectedDragCoeffPercent * 0.14 / 100.0;
+    // Scale to 0-0.2
+    dragCoefficient = (double) selectedDragCoeffPercent * 0.2 / 100.0;
     dragCoefficientLabel.setText(String.format("%.2f", dragCoefficient));
   }
 
@@ -405,7 +410,14 @@ public class Renderer {
       TextureData data = TextureIO.newTextureData(glProfile, stream, false, "png");
       ballTexture = TextureIO.newTexture(data);
     } catch (IOException exc) {
-      throw new RuntimeException(exc);
+      throw new RuntimeException("Failed to load the ball texture!", exc);
+    }
+    try {
+      InputStream stream = getClass().getResourceAsStream("/res/clouds.png");
+      TextureData data = TextureIO.newTextureData(glProfile, stream, false, "png");
+      cloudsTexture = TextureIO.newTexture(data);
+    } catch (IOException exc) {
+      throw new RuntimeException("Failed to load the ball texture!", exc);
     }
   }
 
@@ -422,6 +434,7 @@ public class Renderer {
     gl2.glLineWidth(lineWidth);
     synchronized (Game.getInstance().getBallLock()) {
       updateCameraPosition();
+      drawClouds(gl2);
 
       gl2.glTranslatef(-cameraX, -cameraY, 0.0f);
       drawGround(gl2);
@@ -431,6 +444,68 @@ public class Renderer {
       }
       drawBall(gl2);
     }
+  }
+
+  private void drawClouds(GL2 gl2) {
+    gl2.glEnable(GL_TEXTURE_2D);
+
+    gl2.glEnable(GL_BLEND);
+    gl2.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl2.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl2.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    cloudsTexture.enable(gl2);
+    cloudsTexture.bind(gl2);
+
+    float size_x = CLOUD_SIZE_X_MIN + (getPixelsPerMeter() - PIXELS_PER_METER_MIN) * (CLOUD_SIZE_X_MAX - CLOUD_SIZE_X_MIN) / (float) (PIXELS_PER_METER_MAX - PIXELS_PER_METER_MIN);
+    float size_y = (CLOUD_SIZE_Y_MIN + (getPixelsPerMeter() - PIXELS_PER_METER_MIN) * (CLOUD_SIZE_Y_MAX - CLOUD_SIZE_Y_MIN) / (float) (PIXELS_PER_METER_MAX - PIXELS_PER_METER_MIN)) * getDrawingPanelWidth() / getDrawingPanelHeight();
+
+    float move_based_on_zoom_x = - (getPixelsPerMeter() - PIXELS_PER_METER_MIN) / (float) (4.0f * (PIXELS_PER_METER_MAX - PIXELS_PER_METER_MIN));
+    float move_based_on_zoom_y = - move_based_on_zoom_x / 2.0f;
+
+    float move_based_on_camera_x = - cameraX * 2 / PIXELS_PER_METER;
+    float move_based_on_camera_y = - cameraY * 2 / PIXELS_PER_METER;
+
+    float move_x = move_based_on_zoom_x + move_based_on_camera_x;
+    float move_y = move_based_on_zoom_y + move_based_on_camera_y;
+
+
+    for (int cloudNumber = 0; cloudNumber < 3; cloudNumber++) {
+      gl2.glPushMatrix();
+
+      gl2.glTranslatef(
+          move_x - 1.0f + size_x / 2.0f + size_x * (2 - cloudNumber),
+          move_y + 1.0f - size_y / 2.0f,
+          0.0f
+      );
+
+      gl2.glScalef(
+          size_x / 2.0f,
+          size_y / 2.0f,
+          1.0f
+      );
+
+      gl2.glBegin(GL_TRIANGLES);
+      gl2.glTexCoord2f(0.0f, (1.0f - 0.25f * cloudNumber));
+      gl2.glVertex2f(-1.0f, 1.0f);
+      gl2.glTexCoord2f(0.0f, (0.75f - 0.25f * cloudNumber));
+      gl2.glVertex2f(-1.0f, -1.0f);
+      gl2.glTexCoord2f(1.0f, (0.75f - 0.25f * cloudNumber));
+      gl2.glVertex2f(1.0f, -1.0f);
+
+      gl2.glTexCoord2f(0.0f, (1.0f - 0.25f * cloudNumber));
+      gl2.glVertex2f(-1.0f, 1.0f);
+      gl2.glTexCoord2f(1.0f, (1.0f - 0.25f * cloudNumber));
+      gl2.glVertex2f(1.0f, 1.0f);
+      gl2.glTexCoord2f(1.0f, (0.75f - 0.25f * cloudNumber));
+      gl2.glVertex2f(1.0f, -1.0f);
+      gl2.glEnd();
+
+      gl2.glPopMatrix();
+    }
+
+    gl2.glDisable(GL_BLEND);
+    gl2.glDisable(GL_TEXTURE_2D);
   }
 
   private void updateCameraPosition() {
@@ -561,7 +636,6 @@ public class Renderer {
     gl2.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     gl2.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     gl2.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    gl2.glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
     ballTexture.enable(gl2);
     ballTexture.bind(gl2);
@@ -577,7 +651,7 @@ public class Renderer {
         metersToUniformCoordinatesY(ball.getSize().y) / 2.0f,
         1.0f
     );
-    gl2.glRotatef((float) (ball.getAngle() * 90.0 / Math.PI), 0.0f, 0.0f, 1.0f);
+    gl2.glRotatef((float) (ball.getAngle() * 180.0 / Math.PI), 0.0f, 0.0f, 1.0f);
 
     gl2.glBegin(GL_TRIANGLES);
     gl2.glTexCoord2f(0.0f, 1.0f);
