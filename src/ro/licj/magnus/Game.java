@@ -12,7 +12,7 @@ public class Game {
   private static final double GROUND_Y = 1.0;
   private static final Point INITIAL_BALL_POSITION = new Point(1.0, GROUND_Y + 0.12);
   private static final float MAX_GROUND_X = 1000.0f;
-  private static final double MAGNUS_COEFFICIENT = 0.01;
+  private static final double MAGNUS_COEFFICIENT = 0.0023;
   private static double dragCoefficient = 0.142;
   private static Game instance = new Game();
   private final Object ballLock = new Object();

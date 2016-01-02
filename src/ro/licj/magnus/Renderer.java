@@ -290,7 +290,7 @@ public class Renderer {
     selectorsPanel.add(dragCoefficientSelector);
 
     selectedAngularVelocity(50);
-    JPanel angularVelocitySelector = createPropertySelector("Angular velocity", new ChangeListener() {
+    JPanel angularVelocitySelector = createPropertySelector("Angular frequency", new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
         JSlider angularVelocitySelector = (JSlider) e.getSource();
@@ -378,8 +378,8 @@ public class Renderer {
   }
 
   private void selectedDragCoefficient(int selectedDragCoeffPercent) {
-    // Scale to 0-0.2
-    dragCoefficient = (double) selectedDragCoeffPercent * 0.2 / 100.0;
+    // Scale to 0-0.142
+    dragCoefficient = (double) selectedDragCoeffPercent * 0.142 / 100.0;
     dragCoefficientLabel.setText(String.format("%.2f", dragCoefficient));
   }
 
