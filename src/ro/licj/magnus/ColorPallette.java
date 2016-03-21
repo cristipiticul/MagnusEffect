@@ -17,7 +17,7 @@ public class ColorPallette {
   }
 
   public static void main(String[] args) {
-    JFrame frame = new JFrame();
+    final JFrame frame = new JFrame();
     frame.addWindowListener(new WindowAdapter() {
       public void windowClosing(WindowEvent windowevent) {
         frame.dispose();

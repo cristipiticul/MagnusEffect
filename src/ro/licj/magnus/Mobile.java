@@ -9,7 +9,7 @@ public class Mobile {
   private Point position;
 
   private double angle;
-  private double angularVelocity;
+  private double frequency; // in revolutions/second
 
   private Vector speed;
 
@@ -61,7 +61,10 @@ public class Mobile {
   }
 
   private void updateAngle() {
-    angle += angularVelocity * Timer.UPDATE_TIME;
+    angle += frequency * 2 * Math.PI * Timer.UPDATE_TIME;
+    while (angle > 2 * Math.PI) {
+      angle -= 2 * Math.PI;
+    }
   }
 
   private void updatePosition() {
@@ -74,11 +77,11 @@ public class Mobile {
     speed.y += (force.y / mass) * Timer.UPDATE_TIME;
   }
 
-  public void setAngularVelocity(double angularVelocity) {
-    this.angularVelocity = angularVelocity;
+  public void setFrequency(double frequency) {
+    this.frequency = frequency;
   }
 
-  public double getAngularVelocity() {
-    return angularVelocity;
+  public double getFrequency() {
+    return frequency;
   }
 }

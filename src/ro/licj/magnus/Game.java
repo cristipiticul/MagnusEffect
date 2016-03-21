@@ -12,7 +12,7 @@ public class Game {
   private static final double GROUND_Y = 1.0;
   private static final Point INITIAL_BALL_POSITION = new Point(1.0, GROUND_Y + 0.12);
   private static final float MAX_GROUND_X = 1000.0f;
-  private static final double MAGNUS_COEFFICIENT = 0.0023;
+  private static final double MAGNUS_COEFFICIENT = 0.006;
   private static double dragCoefficient = 0.142;
   private static Game instance = new Game();
   private final Object ballLock = new Object();
@@ -100,7 +100,7 @@ public class Game {
         synchronized (ballLock) {
           Vector gravitationalForce = new Vector(0.0, -9.81 * ball.getMass());
           Vector frictionForce = Vector.product(-dragCoefficient, ball.getSpeed());
-          Vector magnusForceTmp = Vector.product(MAGNUS_COEFFICIENT * ball.getAngularVelocity(), ball.getSpeed());
+          Vector magnusForceTmp = Vector.product(MAGNUS_COEFFICIENT * ball.getFrequency(), ball.getSpeed());
           Vector magnusForce = new Vector(-magnusForceTmp.y, magnusForceTmp.x);
 
           renderer.setSpeedX(ball.getSpeed().x);
@@ -135,7 +135,7 @@ public class Game {
       dragCoefficient = renderer.getDragCoefficient();
       synchronized (ballLock) {
         ball.setSpeed(new Vector(initialSpeedX, initialSpeedY));
-        ball.setAngularVelocity(renderer.getAngularVelocity());
+        ball.setFrequency(renderer.getFrequency());
       }
     }
   }

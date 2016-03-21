@@ -66,13 +66,13 @@ public class Renderer {
   private JLabel speedLabel = new JLabel("");
   private JLabel directionLabel = new JLabel("");
   private JLabel dragCoefficientLabel = new JLabel("");
-  private JLabel angularVelocityLabel = new JLabel("");
+  private JLabel frequencyLabel = new JLabel("");
   private float cameraX;
   private float cameraY;
   private double dragCoefficient;
   private GenericTableModel<Trajectory> trajectoriesTableModel;
   private List<Trajectory> trajectories;
-  private double angularVelocity;
+  private double frequency;
   private JLabel speedXJLabel = new JLabel();
   private JLabel speedYJLabel = new JLabel();
   private JLabel magnusForceJLabel = new JLabel();
@@ -289,16 +289,16 @@ public class Renderer {
     dragCoefficientSelector.add(dragCoefficientLabel);
     selectorsPanel.add(dragCoefficientSelector);
 
-    selectedAngularVelocity(50);
-    JPanel angularVelocitySelector = createPropertySelector("Angular frequency", new ChangeListener() {
+    selectedFrequency(50);
+    JPanel frequencySelector = createPropertySelector("Frequency", new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
-        JSlider angularVelocitySelector = (JSlider) e.getSource();
-        selectedAngularVelocity(angularVelocitySelector.getValue());
+        JSlider frequencySelector = (JSlider) e.getSource();
+        selectedFrequency(frequencySelector.getValue());
       }
     });
-    angularVelocitySelector.add(angularVelocityLabel);
-    selectorsPanel.add(angularVelocitySelector);
+    frequencySelector.add(frequencyLabel);
+    selectorsPanel.add(frequencySelector);
 
     return selectorsPanel;
   }
@@ -383,11 +383,10 @@ public class Renderer {
     dragCoefficientLabel.setText(String.format("%.2f", dragCoefficient));
   }
 
-  private void selectedAngularVelocity(int angularVelocityPercent) {
-    // Scale to 0-10 rotations/s = 0-10*2pi rad/s
-    double angularVelocityRotations = (double) angularVelocityPercent / 10.0;
-    angularVelocity = angularVelocityRotations * 2 * Math.PI;
-    angularVelocityLabel.setText(String.format("%.2f", angularVelocityRotations) + " rev/s");
+  private void selectedFrequency(int frequencyPercent) {
+    // Scale to 0-10 rotations/s
+    frequency = (double) frequencyPercent / 10.0;
+    frequencyLabel.setText(String.format("%.2f", frequency) + " rev/s");
   }
 
   private void start() {
@@ -428,8 +427,8 @@ public class Renderer {
 
     gl2.glLoadIdentity();
     float lineWidth = (float) PIXELS_PER_METER / 25;
-    if (lineWidth <= 2.0f) {
-      lineWidth = 2.0f;
+    if (lineWidth <= 3.0f) {
+      lineWidth = 3.0f;
     }
     gl2.glLineWidth(lineWidth);
     synchronized (Game.getInstance().getBallLock()) {
@@ -709,8 +708,8 @@ public class Renderer {
     return initialDirection;
   }
 
-  public double getAngularVelocity() {
-    return angularVelocity;
+  public double getFrequency() {
+    return frequency;
   }
 
   public boolean shouldRestart() {
