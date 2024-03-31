@@ -1,0 +1,1 @@
+These are required for building the Java application
